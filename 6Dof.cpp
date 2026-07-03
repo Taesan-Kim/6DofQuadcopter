@@ -2,36 +2,36 @@
 #include <cmath>
 #include <vector>
 
-//Æ÷ÀÎÅÍ
-//*p´Â pÀÇ °´Ã¼
-//count << &v : ÁÖ¼Ò¸¦ ¾ò´Â ¿¬»êÀÚ
-//Vector3* p = ´Â Vector3ÀÇ ÁÖ¼Ò¸¦ ÀúÀåÇÏ´Â º¯¼ö
-//p°¡ ÁÖ¼Ò¶ó°í ÇÒ ¶§, p(ÁÖ¼Ò)->x(°´Ã¼) ´Â (*p).x
+//í¬ì¸í„°
+//*pëŠ” pì˜ ê°ì²´
+//count << &v : ì£¼ì†Œë¥¼ ì–»ëŠ” ì—°ì‚°ì
+//Vector3* p = ëŠ” Vector3ì˜ ì£¼ì†Œë¥¼ ì €ì¥í•˜ëŠ” ë³€ìˆ˜
+//pê°€ ì£¼ì†Œë¼ê³  í•  ë•Œ, p(ì£¼ì†Œ)->x(ê°ì²´) ëŠ” (*p).x
 
 
 
-// 3Â÷¿ø º¤ÅÍ ¹× ±âº» ¿¬»ê ±¸Á¶Ã¼
+// 3ì°¨ì› ë²¡í„° ë° ê¸°ë³¸ ì—°ì‚° êµ¬ì¡°ì²´
 struct Vector3 { 
     //struct is bundle of data. 
-    //class¿ÍÀÇ À¯ÀÏÇÑ Â÷ÀÌÁ¡Àº structÀÇ ±âº» Á¢±Ù ÁöÁ¤ÀÚ´Â publicÀÌ´Ù.
-    //class´Â privateÀÌ´Ù.
+    //classì™€ì˜ ìœ ì¼í•œ ì°¨ì´ì ì€ structì˜ ê¸°ë³¸ ì ‘ê·¼ ì§€ì •ìëŠ” publicì´ë‹¤.
+    //classëŠ” privateì´ë‹¤.
 
-    //sizeof(Vector3) = 24bytes...doubleÀº 8byte
-    //doubleÀº 64ºñÆ® ºÎµ¿¼Ò¼öÁ¡ÀÌ´Ù. 15~16ÀÚ¸® Á¤¹Ğµµ¸¦ °¡Áø´Ù.
+    //sizeof(Vector3) = 24bytes...doubleì€ 8byte
+    //doubleì€ 64ë¹„íŠ¸ ë¶€ë™ì†Œìˆ˜ì ì´ë‹¤. 15~16ìë¦¬ ì •ë°€ë„ë¥¼ ê°€ì§„ë‹¤.
 
-    double x = 0.0; //c++11ºÎÅÍ °¡´É
+    double x = 0.0; //c++11ë¶€í„° ê°€ëŠ¥
     double y = 0.0;
     double z = 0.0;
 
-    //operator+´Â ¿¬»êÀÚ ¿À¹ö·Îµù
-    //a+b ´Â ÄÄÆÄÀÏ·¯°¡ a.operator+(b)·Î ¹Ù²Û´Ù.
+    //operator+ëŠ” ì—°ì‚°ì ì˜¤ë²„ë¡œë”©
+    //a+b ëŠ” ì»´íŒŒì¼ëŸ¬ê°€ a.operator+(b)ë¡œ ë°”ê¾¼ë‹¤.
 
-    //const Vector3& v¿¡¼­ const´Â ÀĞ±â Àü¿ëÀÌ¶õ ÀÇ¹Ì, Áï ÀÔ·Â¸¸ ¹Ş°í ¼öÁ¤ÇÏÁö ¾Ê°Ú´Ù.
-    //&´Â ÂüÁ¶ÀÇ ÀÇ¹Ì. Áï ÁÖ¼Ò¸¸ Àü´ŞÇÏ°Ú´Ù.
-    //µÚÀÇ const´Â operator+()¿¡¼­ a+b¶ó°í ÇÒ ‹š, a°¡ º¯°æµÇÁö ¾Ê´Â´Ù´Â ÀÇ¹Ì.
-    //µû¶ó¼­ x=100À» ÇÏ¸é ÄÄÆÄÀÏ ¿¡·¯ÀÌ´Ù.
+    //const Vector3& vì—ì„œ constëŠ” ì½ê¸° ì „ìš©ì´ë€ ì˜ë¯¸, ì¦‰ ì…ë ¥ë§Œ ë°›ê³  ìˆ˜ì •í•˜ì§€ ì•Šê² ë‹¤.
+    //&ëŠ” ì°¸ì¡°ì˜ ì˜ë¯¸. ì¦‰ ì£¼ì†Œë§Œ ì „ë‹¬í•˜ê² ë‹¤.
+    //ë’¤ì˜ constëŠ” operator+()ì—ì„œ a+bë¼ê³  í•  Â‹Âš, aê°€ ë³€ê²½ë˜ì§€ ì•ŠëŠ”ë‹¤ëŠ” ì˜ë¯¸.
+    //ë”°ë¼ì„œ x=100ì„ í•˜ë©´ ì»´íŒŒì¼ ì—ëŸ¬ì´ë‹¤.
 
-    // º¤ÅÍ µ¡¼À
+    // ë²¡í„° ë§ì…ˆ
     Vector3 operator+(const Vector3& v) const { 
         return { 
             x + v.x,
@@ -39,7 +39,7 @@ struct Vector3 {
             z + v.z 
         }; 
     }
-    // ½ºÄ®¶ó°ö
+    // ìŠ¤ì¹¼ë¼ê³±
     Vector3 operator*(double scalar) const {
         return {
             x * scalar,
@@ -47,7 +47,7 @@ struct Vector3 {
             z * scalar 
         }; 
     }
-    // º¤ÅÍ –E¼À
+    // ë²¡í„° Â–Eì…ˆ
     Vector3 operator-(const Vector3& v) const {
         return {
             x - v.x,
@@ -55,7 +55,7 @@ struct Vector3 {
             z - v.z 
         };
     }
-    // ½ºÄ®¶ó ³ª´°¼À
+    // ìŠ¤ì¹¼ë¼ ë‚˜ëˆ—ì…ˆ
     Vector3 operator/(double scalar) const {
         return {
             x / scalar,
@@ -63,7 +63,7 @@ struct Vector3 {
             z / scalar
         };
     }
-    // ÀÚ±â ÀÚ½Å¿¡ ´õÇÏ±â
+    // ìê¸° ìì‹ ì— ë”í•˜ê¸°
     Vector3& operator+=(const Vector3& v)
     {
         x += v.x;
@@ -71,7 +71,7 @@ struct Vector3 {
         z += v.z;
         return *this;
     }
-    // ÀÚ±â ÀÚ½Å¿¡ »©±â
+    // ìê¸° ìì‹ ì— ë¹¼ê¸°
     Vector3& operator-=(const Vector3& v)
     {
         x -= v.x;
@@ -79,7 +79,7 @@ struct Vector3 {
         z -= v.z;
         return *this;
     }
-    // ÀÚ±â ÀÚ½Å¿¡ °öÇÏ±â
+    // ìê¸° ìì‹ ì— ê³±í•˜ê¸°
     Vector3& operator*=(double s)
     {
         x *= s;
@@ -87,7 +87,7 @@ struct Vector3 {
         z *= s;
         return *this;
     }
-    // ÀÚ±â ÀÚ½Å¿¡ ³ª´©±â
+    // ìê¸° ìì‹ ì— ë‚˜ëˆ„ê¸°
     Vector3& operator/=(double s)
     {
         x /= s;
@@ -95,11 +95,11 @@ struct Vector3 {
         z /= s;
         return *this;
     }
-    // ³»Àû
+    // ë‚´ì 
     double dot(const Vector3& v) const {
         return x * v.x + y * v.y + z * v.z;
     }
-    // ¿ÜÀû
+    // ì™¸ì 
     Vector3 cross(const Vector3& v) const {
         return {
             y * v.z - v.y * z,
@@ -107,18 +107,18 @@ struct Vector3 {
             x * v.y - v.x * y
         };
     }
-    // Å©±â
+    // í¬ê¸°
     double norm() const {
         return std::sqrt(x * x + y * y + z * z);
-        //std:: ³»°¡ ¸¸µç ÇÔ¼ö¿Í Ç¥ÁØ ¶óÀÌºê·¯¸®ÀÇ ÇÔ¼öÀÇ È¥µ¿À» ¸·±â À§ÇÔ
-        //³×ÀÓ½ºÆäÀÌ½º
+        //std:: ë‚´ê°€ ë§Œë“  í•¨ìˆ˜ì™€ í‘œì¤€ ë¼ì´ë¸ŒëŸ¬ë¦¬ì˜ í•¨ìˆ˜ì˜ í˜¼ë™ì„ ë§‰ê¸° ìœ„í•¨
+        //ë„¤ì„ìŠ¤í˜ì´ìŠ¤
     }
-    // Å©±â Á¦°ö
+    // í¬ê¸° ì œê³±
     double normSquared() const
     {
         return x * x + y * y + z * z;
     }
-    // ´ÜÀ§ º¤ÅÍ
+    // ë‹¨ìœ„ ë²¡í„°
     Vector3 normalized() const {
         double n = norm();
         if (n == 0.0)
@@ -131,50 +131,50 @@ struct Vector3 {
     }
 };
 
-// 6ÀÚÀ¯µµ »óÅÂ »óÅÂ º¤ÅÍ Á¤ÀÇ
+// 6ììœ ë„ ìƒíƒœ ìƒíƒœ ë²¡í„° ì •ì˜
 struct QuadState {
-    Vector3 position;      // Áö±¸°íÁ¤ÁÂÇ¥°è (X, Y, Z)
-    Vector3 velocity;      // Áö±¸°íÁ¤ÁÂÇ¥°è ¼Óµµ
-    Vector3 attitude;      // ¿ÀÀÏ·¯ °¢ (Roll, Pitch, Yaw)
-    Vector3 angularVel;    // µ¿Ã¼°íÁ¤ÁÂÇ¥°è °¢¼Óµµ (p, q, r)
+    Vector3 position;      // ì§€êµ¬ê³ ì •ì¢Œí‘œê³„ (X, Y, Z)
+    Vector3 velocity;      // ì§€êµ¬ê³ ì •ì¢Œí‘œê³„ ì†ë„
+    Vector3 attitude;      // ì˜¤ì¼ëŸ¬ ê° (Roll, Pitch, Yaw)
+    Vector3 angularVel;    // ë™ì²´ê³ ì •ì¢Œí‘œê³„ ê°ì†ë„ (p, q, r)
 };
 
 struct QuadDerivative {
-    Vector3 velocity;       // À§Ä¡ÀÇ º¯È­À² = ¼Óµµ
-    Vector3 accel;          // ¼ÓµµÀÇ º¯È­À² = °¡¼Óµµ
-    Vector3 angularVel;     // ÀÚ¼¼°¢ÀÇ º¯È­À² = °¢¼Óµµ
-    Vector3 angularAccel;   // °¢¼ÓµµÀÇ º¯È­À² = °¢°¡¼Óµµ
+    Vector3 velocity;       // ìœ„ì¹˜ì˜ ë³€í™”ìœ¨ = ì†ë„
+    Vector3 accel;          // ì†ë„ì˜ ë³€í™”ìœ¨ = ê°€ì†ë„
+    Vector3 angularVel;     // ìì„¸ê°ì˜ ë³€í™”ìœ¨ = ê°ì†ë„
+    Vector3 angularAccel;   // ê°ì†ë„ì˜ ë³€í™”ìœ¨ = ê°ê°€ì†ë„
 };
 
-// ¹°¸®Àû »ó¼ö ¹× ±âÃ¼ ÆÄ¶ó¹ÌÅÍ
-//namespace´Â º¯¼ö, ÇÔ¼ö, Å¬·¡½º µîÀ» ´ã¾ÆµÎ´Â ÀÌ¸§ °ø°£
-//ÀÌ¸§ÀÌ °°Àº º¯¼öÀÇ Ãæµ¹À» ¸·±â À§ÇÔ
+// ë¬¼ë¦¬ì  ìƒìˆ˜ ë° ê¸°ì²´ íŒŒë¼ë¯¸í„°
+//namespaceëŠ” ë³€ìˆ˜, í•¨ìˆ˜, í´ë˜ìŠ¤ ë“±ì„ ë‹´ì•„ë‘ëŠ” ì´ë¦„ ê³µê°„
+//ì´ë¦„ì´ ê°™ì€ ë³€ìˆ˜ì˜ ì¶©ëŒì„ ë§‰ê¸° ìœ„í•¨
 namespace Param {
-    const double g = 9.81;        // Áß·Â°¡¼Óµµ
-    const double mass = 1.0;      // ±âÃ¼ Áú·® (kg)
-    const Vector3 I = { 0.0081, 0.0081, 0.0142 }; // °ü¼º¸ğ¸àÆ® (Ixx, Iyy, Izz)
-    const double l = 0.25;        // È¸ÀüÃà¿¡¼­ ¸ğÅÍ±îÁöÀÇ °Å¸® (m)
-    const double b = 5.42e-5;     // Ãß·Â °è¼ö
-    const double d = 1.1e-6;      // Ç×·Â °è¼ö
+    const double g = 9.81;        // ì¤‘ë ¥ê°€ì†ë„
+    const double mass = 1.0;      // ê¸°ì²´ ì§ˆëŸ‰ (kg)
+    const Vector3 I = { 0.0081, 0.0081, 0.0142 }; // ê´€ì„±ëª¨ë©˜íŠ¸ (Ixx, Iyy, Izz)
+    const double l = 0.25;        // íšŒì „ì¶•ì—ì„œ ëª¨í„°ê¹Œì§€ì˜ ê±°ë¦¬ (m)
+    const double b = 5.42e-5;     // ì¶”ë ¥ ê³„ìˆ˜
+    const double d = 1.1e-6;      // í•­ë ¥ ê³„ìˆ˜
 }
 
-// 1. µ¿¿ªÇĞ ÇÃ·£ Å¬·¡½º
+// 1. ë™ì—­í•™ í”Œëœ í´ë˜ìŠ¤
 class QuadcopterDynamics {
 private:
     QuadState state;
 
 public:
-    //QuadcopterDynamics ÇÔ¼ö »ı¼º ÈÄ ¸â¹ö º¯¼ö state¸¦ initialState·Î Á÷Á¢ ÃÊ±âÈ­ÇÏ¶ó.
+    //QuadcopterDynamics í•¨ìˆ˜ ìƒì„± í›„ ë©¤ë²„ ë³€ìˆ˜ stateë¥¼ initialStateë¡œ ì§ì ‘ ì´ˆê¸°í™”í•˜ë¼.
     QuadcopterDynamics(QuadState initialState) 
-        : state(initialState) //ÇÔ¼ö È£ÃâÀÌ ¾Æ´Ï´Ù. state´Â ÇÔ¼ö°¡ ¾Æ´Ñ, ¸â¹ö º¯¼öÀÌ´Ù.
-        //Áï, state °´Ã¼¸¦ initialState·Î »ı¼ºÇÑ´Ù´Â ÀÇ¹Ì
+        : state(initialState) //í•¨ìˆ˜ í˜¸ì¶œì´ ì•„ë‹ˆë‹¤. stateëŠ” í•¨ìˆ˜ê°€ ì•„ë‹Œ, ë©¤ë²„ ë³€ìˆ˜ì´ë‹¤.
+        //ì¦‰, state ê°ì²´ë¥¼ initialStateë¡œ ìƒì„±í•œë‹¤ëŠ” ì˜ë¯¸
     {}
 
-    // ¸ğÅÍ ¼Óµµ(RPM ¶Ç´Â ¹«Â÷¿ø Á¦¾îÀÔ·Â)¸¦ ¹Ş¾Æ »óÅÂ¸¦ °»½Å (Euler integration)
+    // ëª¨í„° ì†ë„(RPM ë˜ëŠ” ë¬´ì°¨ì› ì œì–´ì…ë ¥)ë¥¼ ë°›ì•„ ìƒíƒœë¥¼ ê°±ì‹  (Euler integration)
     QuadDerivative getDerivative(const QuadState& s, const double motorInputs[4]) const{
         QuadDerivative deriv;
 
-        // 4°³ ¸ğÅÍ ÀÔ·ÂÀ¸·ÎºÎÅÍ ÃÑ Ãß·Â(Thrust) ¹× 3Ãà ¸ğ¸àÆ®(Torque) °è»ê
+        // 4ê°œ ëª¨í„° ì…ë ¥ìœ¼ë¡œë¶€í„° ì´ ì¶”ë ¥(Thrust) ë° 3ì¶• ëª¨ë©˜íŠ¸(Torque) ê³„ì‚°
         double F1 = motorInputs[0];
         double F2 = motorInputs[1];
         double F3 = motorInputs[2];
@@ -182,36 +182,44 @@ public:
 
         double totalThrust = F1 + F2 + F3 + F4;
 
-        // ¾÷µ¥ÀÌÆ®µÈ ¿¢½ºÇü(X) ¹èÄ¡ µ¿¿ªÇĞ ÅäÅ© °è»ê
+        // ì—…ë°ì´íŠ¸ëœ ì—‘ìŠ¤í˜•(X) ë°°ì¹˜ ë™ì—­í•™ í† í¬ ê³„ì‚°
         Vector3 torque;
-        // Àü¹æ/ÈÄ¹æ, ÁÂ/¿ì ¸ÅÇÎ¿¡ ¸ÂÃç ºÎÈ£ Á¤·Ä (¿À¸¥¼Õ ¹ıÄ¢ ±âÁØ)
+        // ì „ë°©/í›„ë°©, ì¢Œ/ìš° ë§¤í•‘ì— ë§ì¶° ë¶€í˜¸ ì •ë ¬ (ì˜¤ë¥¸ì† ë²•ì¹™ ê¸°ì¤€)
         torque.x = Param::l * (F2 + F1 - F4 - F3); // Roll
         torque.y = Param::l * (F3 + F1 - F2 - F4); // Pitch
         torque.z = (Param::d / Param::b) * (F1 - F2 + F3 - F4); // Yaw
 
-        // ¹°¸® ¹ıÄ¢¿¡ ÀÇÇÑ °¡¼Óµµ ¹× °¢°¡¼Óµµ °è»ê (»óÅÂ s¿¡ ÀÇÁ¸)
-        // À§Ä¡ÀÇ º¯È­À² = ÇöÀç ¼Óµµ
+        // ë¬¼ë¦¬ ë²•ì¹™ì— ì˜í•œ ê°€ì†ë„ ë° ê°ê°€ì†ë„ ê³„ì‚° (ìƒíƒœ sì— ì˜ì¡´)
+        // ìœ„ì¹˜ì˜ ë³€í™”ìœ¨ = í˜„ì¬ ì†ë„
         deriv.velocity = s.velocity;
 
-        // °¡¼Óµµ °è»ê
-        // µ¿Ã¼ÁÂÇ¥°è Ãß·ÂÀ» Áö±¸ ÁÂÇ¥°è Ãß·ÂÀ¸·Î º¯È¯ÇÏ´Â È¸ÀüÇà·Ä ¿¬»êÀ» À§ÇÑ º¯¼ö¼³Á¤
+        // ê°€ì†ë„ ê³„ì‚°
+        // ë™ì²´ì¢Œí‘œê³„ ì¶”ë ¥ì„ ì§€êµ¬ ì¢Œí‘œê³„ ì¶”ë ¥ìœ¼ë¡œ ë³€í™˜í•˜ëŠ” íšŒì „í–‰ë ¬ ì—°ì‚°ì„ ìœ„í•œ ë³€ìˆ˜ì„¤ì •
         double c_phi = cos(s.attitude.x);   double s_phi = sin(s.attitude.x);   // Roll
         double c_theta = cos(s.attitude.y); double s_theta = sin(s.attitude.y); // Pitch
         double c_psi = cos(s.attitude.z);   double s_psi = sin(s.attitude.z);   // Yaw
 
-        // Áö±¸ ÁÂÇ¥°è·Î Åõ¿µµÈ Ãß·Â °¡¼Óµµ (F_I = R * [0, 0, totalThrust]^T)
+        // ì§€êµ¬ ì¢Œí‘œê³„ë¡œ íˆ¬ì˜ëœ ì¶”ë ¥ ê°€ì†ë„ (F_I = R * [0, 0, totalThrust]^T)
         deriv.accel.x = (totalThrust / Param::mass) * (c_phi * s_theta * c_psi + s_phi * s_psi);
         deriv.accel.y = (totalThrust / Param::mass) * (c_phi * s_theta * s_psi - s_phi * c_psi);
         deriv.accel.z = (totalThrust / Param::mass) * (c_phi * c_theta) - Param::g;
 
-        // ÀÚ¼¼ÀÇ º¯È­À² = ÇöÀç °¢¼Óµµ
-        // ÇöÀç °¢¼Óµµ´Â ÀÚÀÌ·Î ¼¾¼­¿¡¼­ ÀĞÀº µ¿Ã¼ °¢¼ÓµµÀÌ´Ù.
-        // µ¿Ã¼ °¢¼Óµµ´Â ¿ÀÀÏ·¯ °¢ÀÇ ¹ÌºĞ°ª º¯È­À²°ú ´Ù¸£´Ù.
-        // °¢¼Óµµ¸¦ ÃøÁ¤ÇÏ´Â ±âÁØ ÃàÀÌ ½Ç½Ã°£À¸·Î º¯ÇÏ±â ¶§¹®ÀÌ´Ù.
-        // ±×·¯¹Ç·Î Çà·Ä °ü°è½ÄÀ» ÅëÇØ µ¿Ã¼ °¢¼Óµµ¸¦ °¡Áö°í ¿ÀÀÏ·¯ °¢ÀÇ º¯È­À²À» ±¸ÇÑ´Ù.
-        deriv.angularVel = s.angularVel;
+        // ë™ì²´ ê°ì†ë„ëŠ” ìì´ë¡œ ì„¼ì„œì—ì„œ ì½ì€ ë™ì²´ ê°ì†ë„ì´ë‹¤.
+        // ë™ì²´ ê°ì†ë„ëŠ” ì˜¤ì¼ëŸ¬ ê°ì˜ ë¯¸ë¶„ê°’ ë³€í™”ìœ¨ê³¼ ë‹¤ë¥´ë‹¤.
+        // ê°ì†ë„ë¥¼ ì¸¡ì •í•˜ëŠ” ê¸°ì¤€ ì¶•ì´ ì‹¤ì‹œê°„ìœ¼ë¡œ ë³€í•˜ê¸° ë•Œë¬¸ì´ë‹¤.
+        // ê·¸ëŸ¬ë¯€ë¡œ í–‰ë ¬ ê´€ê³„ì‹ì„ í†µí•´ ë™ì²´ ê°ì†ë„ë¥¼ ê°€ì§€ê³  ì˜¤ì¼ëŸ¬ ê°ì˜ ë³€í™”ìœ¨ì„ êµ¬í•œë‹¤.
+        // í–‰ë ¬ ê´€ê³„ì‹ì€ ì˜¤ì¼ëŸ¬ê°ë³€í™”ìœ¨ì—ì„œ ê°ê°ì˜ elementë“¤ì„ Rotationì„ ì´ìš©í•˜ì—¬ 
+        // ë§¨ ì²˜ìŒ ê³ ì •ëœ Inertialì¢Œí‘œê³„ ê¸°ì¤€ìœ¼ë¡œì˜ ê°’ìœ¼ë¡œ ë³€í™˜ í›„ ì´í•©ì„ Body Frameë¡œ í‘œí˜„í•œë‹¤. (T(phi, theta)êµ¬í•˜ê¸°)
+        // ì—­ë³€í™˜ì„ í†µí•´ ë™ì²´ê°ì†ë„ë¥¼ ì˜¤ì¼ëŸ¬ ê° ë³€í™”ìœ¨ë¡œ ë³€í™˜ì‹œì¼œì£¼ëŠ” í–‰ë ¬ì„ ë§Œë“ ë‹¤.
 
-        // °¢°¡¼Óµµ °è»ê (Euler's equations for rigid body)
+        // ê³ ë„í™”: ë™ì²´ ê°ì†ë„(p,q,r)ë¥¼ ì˜¤ì¼ëŸ¬ ê° ë³€í™”ìœ¨(dot_phi, dot_theta, dot_psi)ë¡œ ë³€í™˜
+        deriv.angularVel.x = s.angularVel.x + sin(s.attitude.x) * tan(s.attitude.y) * s.angularVel.y + cos(s.attitude.x) * tan(s.attitude.y) * s.angularVel.z; // dot_phi
+        deriv.angularVel.y = cos(s.attitude.x) * s.angularVel.y - sin(s.attitude.x) * s.angularVel.z; // dot_theta
+        deriv.angularVel.z = (sin(s.attitude.x) / cos(s.attitude.y)) * s.angularVel.y + (cos(s.attitude.x) / cos(s.attitude.y)) * s.angularVel.z; // dot_psi
+        // ì´ë•Œ, thetaê°€ +- pi/2ì¼ ë•Œ, Gimbal Lockì´ ë°œìƒí•¨ì„ ì£¼ì˜í•œë‹¤.
+
+        
+        // ê°ê°€ì†ë„ ê³„ì‚° (Euler's equations for rigid body)
         deriv.angularAccel.x = (torque.x + (Param::I.y - Param::I.z) * state.angularVel.y * state.angularVel.z) / Param::I.x;
         deriv.angularAccel.y = (torque.y + (Param::I.z - Param::I.x) * state.angularVel.z * state.angularVel.x) / Param::I.y;
         deriv.angularAccel.z = (torque.z + (Param::I.x - Param::I.y) * state.angularVel.x * state.angularVel.y) / Param::I.z;
@@ -219,36 +227,36 @@ public:
         return deriv;
     }
 
-    // RK4 ±â¹İ »óÅÂ ¾÷µ¥ÀÌÆ® Method
+    // RK4 ê¸°ë°˜ ìƒíƒœ ì—…ë°ì´íŠ¸ Method
     void updateRK4(const double motorInputs[4], double dt) {
-        // ¿¬»êÀ» À§ÇÑ ÀÓ½Ã »óÅÂ ±¸Á¶Ã¼µé
+        // ì—°ì‚°ì„ ìœ„í•œ ì„ì‹œ ìƒíƒœ êµ¬ì¡°ì²´ë“¤
         QuadState s_tmp;
 
-        // k1 °è»ê (ÇöÀç ½ÃÁ¡ÀÇ ±â¿ï±â)
+        // k1 ê³„ì‚° (í˜„ì¬ ì‹œì ì˜ ê¸°ìš¸ê¸°)
         QuadDerivative k1 = getDerivative(state, motorInputs);
 
-        // k2 °è»ê (dt/2 ½ÃÁ¡ÀÇ ¿¹°ßµÈ ±â¿ï±â 1)
+        // k2 ê³„ì‚° (dt/2 ì‹œì ì˜ ì˜ˆê²¬ëœ ê¸°ìš¸ê¸° 1)
         s_tmp.position = state.position + k1.velocity * (dt * 0.5);
         s_tmp.velocity = state.velocity + k1.accel * (dt * 0.5);
         s_tmp.attitude = state.attitude + k1.angularVel * (dt * 0.5);
         s_tmp.angularVel = state.angularVel + k1.angularAccel * (dt * 0.5);
         QuadDerivative k2 = getDerivative(s_tmp, motorInputs);
 
-        // k3 °è»ê (dt/2 ½ÃÁ¡ÀÇ ¿¹°ßµÈ ±â¿ï±â 2)
+        // k3 ê³„ì‚° (dt/2 ì‹œì ì˜ ì˜ˆê²¬ëœ ê¸°ìš¸ê¸° 2)
         s_tmp.position = state.position + k2.velocity * (dt * 0.5);
         s_tmp.velocity = state.velocity + k2.accel * (dt * 0.5);
         s_tmp.attitude = state.attitude + k2.angularVel * (dt * 0.5);
         s_tmp.angularVel = state.angularVel + k2.angularAccel * (dt * 0.5);
         QuadDerivative k3 = getDerivative(s_tmp, motorInputs);
 
-        // k4 °è»ê (dt ½ÃÁ¡ÀÇ ¿¹°ßµÈ ±â¿ï±â)
+        // k4 ê³„ì‚° (dt ì‹œì ì˜ ì˜ˆê²¬ëœ ê¸°ìš¸ê¸°)
         s_tmp.position = state.position + k3.velocity * dt;
         s_tmp.velocity = state.velocity + k3.accel * dt;
         s_tmp.attitude = state.attitude + k3.angularVel * dt;
         s_tmp.angularVel = state.angularVel + k3.angularAccel * dt;
         QuadDerivative k4 = getDerivative(s_tmp, motorInputs);
 
-        // ÃÖÁ¾ °¡ÁßÆò±Õ ÀûºĞ (RK4 °ø½Ä)
+        // ìµœì¢… ê°€ì¤‘í‰ê·  ì ë¶„ (RK4 ê³µì‹)
         state.position = state.position + (k1.velocity + k2.velocity * 2.0 + k3.velocity * 2.0 + k4.velocity) * (dt / 6.0);
         state.velocity = state.velocity + (k1.accel + k2.accel * 2.0 + k3.accel * 2.0 + k4.accel) * (dt / 6.0);
         state.attitude = state.attitude + (k1.angularVel + k2.angularVel * 2.0 + k3.angularVel * 2.0 + k4.angularVel) * (dt / 6.0);
@@ -261,14 +269,14 @@ public:
 
 
 
-// 2. Á¦¾î±â Å¬·¡½º (ÃßÈÄ °¡º­¿î ·è¾÷ Å×ÀÌºí ±â¹İ Explicit MPC µîÀ¸·Î ´ëÃ¼ °¡´É)
+// 2. ì œì–´ê¸° í´ë˜ìŠ¤ (ì¶”í›„ ê°€ë²¼ìš´ ë£©ì—… í…Œì´ë¸” ê¸°ë°˜ Explicit MPC ë“±ìœ¼ë¡œ ëŒ€ì²´ ê°€ëŠ¥)
 class PIDController {
 public:
     void computeControlInputs(const QuadState& current, const QuadState& target, double outInputs[4]) {
-        // °íµµ(Z) Á¦¾î¸¦ À§ÇÑ ¾ÆÁÖ ´Ü¼øÇÑ P Á¦¾î ¿¹½Ã
+        // ê³ ë„(Z) ì œì–´ë¥¼ ìœ„í•œ ì•„ì£¼ ë‹¨ìˆœí•œ P ì œì–´ ì˜ˆì‹œ
         double z_error = target.position.z - current.position.z;
-        double baseThrust = Param::mass * Param::g / 4.0; // È£¹ö¸µ Ãß·Â
-        double controlEffort = z_error * 2.0;            // P °ÔÀÎ = 2.0
+        double baseThrust = Param::mass * Param::g / 4.0; // í˜¸ë²„ë§ ì¶”ë ¥
+        double controlEffort = z_error * 2.0;            // P ê²Œì¸ = 2.0
 
         for (int i = 0; i < 4; ++i) {
             outInputs[i] = baseThrust + controlEffort;
@@ -276,33 +284,33 @@ public:
     }
 };
 
-// 3. ¸ŞÀÎ ½Ã¹Ä·¹ÀÌ¼Ç ·çÇÁ ¸Å´ÏÀú
+// 3. ë©”ì¸ ì‹œë®¬ë ˆì´ì…˜ ë£¨í”„ ë§¤ë‹ˆì €
 int main() {
     QuadState initState;
-    initState.position = { 0.0, 0.0, 0.0 }; // Áö¸é¿¡¼­ ½ÃÀÛ
+    initState.position = { 0.0, 0.0, 0.0 }; // ì§€ë©´ì—ì„œ ì‹œì‘
 
     QuadState targetState;
-    targetState.position = { 0.0, 0.0, 10.0 }; // ¸ñÇ¥ °íµµ 10m
+    targetState.position = { 0.0, 0.0, 10.0 }; // ëª©í‘œ ê³ ë„ 10m
 
     QuadcopterDynamics quad(initState);
     PIDController controller;
 
-    double dt = 0.01; // 100Hz ¿¬»ê
+    double dt = 0.01; // 100Hz ì—°ì‚°
     double time = 0.0;
     double motorInputs[4] = { 0, 0, 0, 0 };
 
-    std::cout << "--- ½Ã¹Ä·¹ÀÌ¼Ç ½ÃÀÛ ---" << std::endl;
-    for (int step = 0; step < 200; ++step) { // 2ÃÊ°£ ½Ã¹Ä·¹ÀÌ¼Ç
+    std::cout << "--- ì‹œë®¬ë ˆì´ì…˜ ì‹œì‘ ---" << std::endl;
+    for (int step = 0; step < 200; ++step) { // 2ì´ˆê°„ ì‹œë®¬ë ˆì´ì…˜
         QuadState current = quad.getState();
 
-        // 1. Á¦¾î ÀÔ·Â °è»ê
+        // 1. ì œì–´ ì…ë ¥ ê³„ì‚°
         controller.computeControlInputs(current, targetState, motorInputs);
 
-        // 2. ¹°¸® ¿£Áø ¾÷µ¥ÀÌÆ®
+        // 2. ë¬¼ë¦¬ ì—”ì§„ ì—…ë°ì´íŠ¸
         quad.update(motorInputs, dt);
 
         time += dt;
-        if (step % 20 == 0) { // 0.2ÃÊ¸¶´Ù ÅÍ¹Ì³Î¿¡ ·Î±× Ãâ·Â
+        if (step % 20 == 0) { // 0.2ì´ˆë§ˆë‹¤ í„°ë¯¸ë„ì— ë¡œê·¸ ì¶œë ¥
             std::cout << "Time: " << time << "s | Z-Position: " << current.position.z
                 << "m | Z-Velocity: " << current.velocity.z << "m/s" << std::endl;
         }
