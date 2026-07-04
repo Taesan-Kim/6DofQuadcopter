@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cmath>
 #include <vector>
+#include <algorithm>
 
 //포인터
 //*p는 p의 객체
@@ -216,7 +217,7 @@ public:
         deriv.angularVel.x = s.angularVel.x + sin(s.attitude.x) * tan(s.attitude.y) * s.angularVel.y + cos(s.attitude.x) * tan(s.attitude.y) * s.angularVel.z; // dot_phi
         deriv.angularVel.y = cos(s.attitude.x) * s.angularVel.y - sin(s.attitude.x) * s.angularVel.z; // dot_theta
         deriv.angularVel.z = (sin(s.attitude.x) / cos(s.attitude.y)) * s.angularVel.y + (cos(s.attitude.x) / cos(s.attitude.y)) * s.angularVel.z; // dot_psi
-        // 이때, theta가 +- pi/2일 때, Gimbal Lock이 발생함을 주의한다.
+        // 이때, theta가 +- pi/2일 때, Gimbal Lock이 발생함을 주의한다.                                                                                                //추후 쿼터니언 기반 동역학으로 해결해야 할 것!
 
         
         // 각가속도 계산 (Euler's equations for rigid body)
@@ -270,19 +271,119 @@ public:
 
 
 // 2. 제어기 클래스 (추후 가벼운 룩업 테이블 기반 Explicit MPC 등으로 대체 가능)
-class PIDController {
-public:
-    void computeControlInputs(const QuadState& current, const QuadState& target, double outInputs[4]) {
-        // 고도(Z) 제어를 위한 아주 단순한 P 제어 예시
-        double z_error = target.position.z - current.position.z;
-        double baseThrust = Param::mass * Param::g / 4.0; // 호버링 추력
-        double controlEffort = z_error * 2.0;            // P 게인 = 2.0
+class PIDCore {
+private:
+    // PID 게인 파라미터
+    double kp;
+    double ki;
+    double kd;
 
-        for (int i = 0; i < 4; ++i) {
-            outInputs[i] = baseThrust + controlEffort;
+    // 제어 상태 변수
+    double prevError;
+    double integral;
+    double integralLimit; // Anti-windup을 위한 적분 한계치
+
+public:
+    PIDCore(double p, double i, double d, double iLimit)
+        : kp(p), ki(i), kd(d), prevError(0.0), integral(0.0), integralLimit(iLimit) {}
+
+    // 제어기 초기화 (필요시)
+    void reset() {
+        prevError = 0.0;
+        integral = 0.0;
+    }
+
+    // 제어 입력 계산 함수 (Discrete PID)
+                                                                                // Verilog HDL을 설계할 때는 곱셈기, 누산기, 감산기를 동시에 한 클락 내에 연산을 끝내도록 파이프라인을 짜야 한다!
+    double compute(double target, double current, double dt) {
+        if (dt <= 0.0) return 0.0;
+
+        // 1. 오차 계산 (Error)
+        double error = target - current;
+
+        // 2. P 항 (Proportional)
+        double pTerm = kp * error;
+
+        // 3. I 항 (Integral) & Anti-Windup 처리
+        integral += error * dt;
+        integral = std::max(-integralLimit, std::min(integralLimit, integral)); // 포화 방지
+        double iTerm = ki * integral;
+
+        // 4. D 항 (Derivative) - 오차의 변화율 계산
+        double dTerm = kd * ((error - prevError) / dt);
+
+        // 다음 스텝을 위해 이전 오차 저장
+        prevError = error;
+
+        // 5. 최종 PID 제어 출력
+        return pTerm + iTerm + dTerm;
+    }
+};
+
+
+// 메인 컨트롤러 클래스
+class QuadController {
+private:
+    // 위치(외곽) 제어기: X, Y, Z 고도
+    PIDCore x_pos{1.5, 0.0, 1.0, 0.0};
+    PIDCore y_pos{1.5, 0.0, 1.0, 0.0};
+    PIDCore z_pos{25.0, 2.0, 10.0, 5.0}; // 고도는 중력을 이겨야 하므로 게인을 크게 설정
+
+    // 자세(내곽) 제어기: Roll, Pitch, Yaw
+    PIDCore roll_rate{6.0, 0.5, 2.0, 1.0};
+    PIDCore pitch_rate{6.0, 0.5, 2.0, 1.0};
+    PIDCore yaw_rate{4.0, 0.1, 1.0, 0.5};
+
+public:
+    // 메인 루프에서 호출되는 제어 입력 계산 함수
+    void computeControlInputs(const QuadState& current, const QuadState& target, double outInputs[4], double dt) {
+        // --- 1. 바깥쪽 루프 (Position Loop) ---
+        // 위치 오차를 바탕으로 기체가 생성해야 할 목표 가속도/기울기(목표 오일러 각) 계산
+        // 단순화를 위해 X 위치 오차는 Pitch에, Y 위치 오차는 Roll에 매핑 (방향 부호 주의)
+
+        // compute: 제어 입력 계산 함수 (Discrete PID)
+        double target_roll  = -y_pos.compute(target.position.y, current.position.y, dt);
+        double target_pitch =  x_pos.compute(target.position.x, current.position.x, dt);
+        double target_yaw   =  target.attitude.z; // 우선 목표 Yaw는 그대로 추종하도록 설정
+        
+        // 고도 제어 입력 (Base Thrust)
+        double thrustCmd = z_pos.compute(target.position.z, current.position.z, dt);
+        // 호버링을 위한 기본 중력 보상 평형 상태 추력 추가
+        double hoverThrust = (Param::mass * Param::g);
+        double totalThrust = hoverThrust + thrustCmd;
+
+        // --- 2. 안쪽 루프 (Attitude Loop) ---
+        // 목표 오일러 각과 현재 오일러 각의 오차를 바탕으로 원하는 3축 토크 명령 계산
+        double rollTorque  = roll_rate.compute(target_roll,  current.attitude.x, dt);
+        double pitchTorque = pitch_rate.compute(target_pitch, current.attitude.y, dt);
+        double yawTorque   = yaw_rate.compute(target_yaw,   current.attitude.z, dt);
+
+        // --- 3. 모터 믹서 (Motor Mixer) ---
+        // 엑스형(X) 구조 토크 공식을 역산하여 4개 모터의 개별 추력 분배
+        // 각 모터에 할당될 추력 F = (Thrust 분배) + (토크 분배 기여도)
+        // 십자 성분 분산율(l)과 항력 계수 비율 반영
+        double u_t = totalThrust / 4.0;
+        double u_r = rollTorque / (4.0 * Param::l);
+        double u_p = pitchTorque / (4.0 * Param::l);
+        double u_y = yawTorque / (4.0 * (Param::d / Param::b));
+
+        // 엑스형(X) 모터 믹싱 맵핑 (토크 방정식의 부호와 완벽히 대칭 매칭)
+        outInputs[0] = u_t + u_r + u_p + u_y; // 후우 (1번 모터, CCW)
+        outInputs[1] = u_t + u_r - u_p - u_y; // 전우 (2번 모터, CW)
+        outInputs[2] = u_t - u_r + u_p + u_y; // 전좌 (3번 모터, CCW)
+        outInputs[3] = u_t - u_r - u_p - u_y; // 후좌 (4번 모터, CW)
+
+        // 하드웨어 보호를 위한 모터 출력 Max/Min Saturation 제한 (음수 방지)
+        for(int i = 0; i < 4; ++i) {
+            if(outInputs[i] < 0.0) outInputs[i] = 0.0;
         }
     }
 };
+
+
+
+
+
 
 // 3. 메인 시뮬레이션 루프 매니저
 int main() {
@@ -293,7 +394,8 @@ int main() {
     targetState.position = { 0.0, 0.0, 10.0 }; // 목표 고도 10m
 
     QuadcopterDynamics quad(initState);
-    PIDController controller;
+    QuadController controller;
+    
 
     double dt = 0.01; // 100Hz 연산
     double time = 0.0;
@@ -304,7 +406,7 @@ int main() {
         QuadState current = quad.getState();
 
         // 1. 제어 입력 계산
-        controller.computeControlInputs(current, targetState, motorInputs);
+        controller.computeControlInputs(current, targetState, motorInputs, dt);
 
         // 2. 물리 엔진 업데이트
         quad.update(motorInputs, dt);
