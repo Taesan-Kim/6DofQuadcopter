@@ -164,14 +164,6 @@ class QuadcopterDynamics {
 private:
     QuadState state;
 
-public:
-    //QuadcopterDynamics 함수 생성 후 멤버 변수 state를 initialState로 직접 초기화하라.
-    QuadcopterDynamics(QuadState initialState) 
-        : state(initialState) //함수 호출이 아니다. state는 함수가 아닌, 멤버 변수이다.
-        //즉, state 객체를 initialState로 생성한다는 의미
-    {}
-
-    // 모터 속도(RPM 또는 무차원 제어입력)를 받아 상태를 갱신 (Euler integration)
     QuadDerivative getDerivative(const QuadState& s, const double motorInputs[4]) const{
         QuadDerivative deriv;
 
@@ -213,11 +205,16 @@ public:
         // 맨 처음 고정된 Inertial좌표계 기준으로의 값으로 변환 후 총합을 Body Frame로 표현한다. (T(phi, theta)구하기)
         // 역변환을 통해 동체각속도를 오일러 각 변화율로 변환시켜주는 행렬을 만든다.
 
+        //자세각 변화율 = 오일러 키네마틱스 변환 반영
+        double tan_theta = tan(s.attitude.y);
+        double cos_theta = c_theta; // cos(s.attitude.y);
+        if (std::abs(cos_theta) < 1e-4) cos_theta = 1e-4; // 짐벌락 방지 임계치
+
         // 고도화: 동체 각속도(p,q,r)를 오일러 각 변화율(dot_phi, dot_theta, dot_psi)로 변환
-        deriv.angularVel.x = s.angularVel.x + sin(s.attitude.x) * tan(s.attitude.y) * s.angularVel.y + cos(s.attitude.x) * tan(s.attitude.y) * s.angularVel.z; // dot_phi
-        deriv.angularVel.y = cos(s.attitude.x) * s.angularVel.y - sin(s.attitude.x) * s.angularVel.z; // dot_theta
-        deriv.angularVel.z = (sin(s.attitude.x) / cos(s.attitude.y)) * s.angularVel.y + (cos(s.attitude.x) / cos(s.attitude.y)) * s.angularVel.z; // dot_psi
-        // 이때, theta가 +- pi/2일 때, Gimbal Lock이 발생함을 주의한다.                                                                                                //추후 쿼터니언 기반 동역학으로 해결해야 할 것!
+        deriv.angularVel.x = s.angularVel.x + s_phi * tan_theta * s.angularVel.y + c_phi * tan_theta * s.angularVel.z; // dot_phi
+        deriv.angularVel.y = c_phi * s.angularVel.y - s_phi * s.angularVel.z; // dot_theta
+        deriv.angularVel.z = (s_phi / c_theta) * s.angularVel.y + (c_phi / c_theta) * s.angularVel.z; // dot_psi
+        // 이때, theta가 +- pi/2일 때, Gimbal Lock이 발생함을 주의한다. (짐벌락 방지 코드 추가 완.)                                                                                               //추후 쿼터니언 기반 동역학으로 해결해야 할 것!
 
         
         // 각가속도 계산 (Euler's equations for rigid body)
@@ -227,6 +224,15 @@ public:
 
         return deriv;
     }
+public:
+    //QuadcopterDynamics 함수 생성 후 멤버 변수 state를 initialState로 직접 초기화하라.
+    QuadcopterDynamics(QuadState initialState) 
+        : state(initialState) //함수 호출이 아니다. state는 함수가 아닌, 멤버 변수이다.
+        //즉, state 객체를 initialState로 생성한다는 의미
+    {}
+
+    // 모터 속도(RPM 또는 무차원 제어입력)를 받아 상태를 갱신 (Euler integration)
+    
 
     // RK4 기반 상태 업데이트 Method
     void updateRK4(const double motorInputs[4], double dt) {
@@ -419,3 +425,5 @@ int main() {
     }
     return 0;
 }
+
+
