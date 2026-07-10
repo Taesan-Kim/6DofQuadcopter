@@ -164,6 +164,15 @@ class QuadcopterDynamics {
 private:
     QuadState state;
 
+// getDerivative
+// INPUT: motorInput[4], Initial State(QuadState)
+// OUTPUT: Derivative of State(12차원)...위치의 변화율, 속도의 변화율, 자세각의 변화율, 각속도의 변화율
+// Method
+//        위치의 변화율: 현재속도
+//        속도의 변화율: 모터추력을 통한 동체좌표계 추력 구하기 + 자세각을 이용하여 동체좌표계를 지구좌표계로 변환.
+//        자세각의 변화율: 자이로센서를 통해 동체 각변화율을 얻는다 + 동체각변화율을 관성좌표계로 변환한다(회전이용 Yaw -> Pitch -> Roll) + 관성좌표계로 변환된 동체각변화율 요소들을 총합하고, 
+//                                                        오일러좌표계 각변화율 요소들을 가중치들과 분리하여 오일러좌표계 각변화율과 동체각변화율 간의 행렬등식을 만든다 + 역함수를 취해 오일러좌표계 각변화율을 동체각변화율에 대한 식으로 나타낸다.
+//        각속도의 변화율: 뉴턴-오일러 각운동량 방정식을 통한 유도 (토크, 회전관성, 각속도를 알면 구할 수 있다.)
     QuadDerivative getDerivative(const QuadState& s, const double motorInputs[4]) const{
         QuadDerivative deriv;
 
@@ -235,6 +244,9 @@ public:
     
 
     // RK4 기반 상태 업데이트 Method
+    //updateRK4
+    //INPUT: motorInputs, dt
+    //OUTPUT: 룬지쿠타를 이용하여 구한 최종 state
     void updateRK4(const double motorInputs[4], double dt) {
         // 연산을 위한 임시 상태 구조체들
         QuadState s_tmp;
@@ -293,7 +305,7 @@ public:
     PIDCore(double p, double i, double d, double iLimit)
         : kp(p), ki(i), kd(d), prevError(0.0), integral(0.0), integralLimit(iLimit) {}
 
-    // 제어기 초기화 (필요시)
+    // 제어기 초기화 
     void reset() {
         prevError = 0.0;
         integral = 0.0;
