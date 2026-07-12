@@ -299,16 +299,33 @@ private:
     // 제어 상태 변수
     double prevError;
     double integral;
+
+    // 제어 제약 조건 파라미터 (물리적 한계 모사)
     double integralLimit; // Anti-windup을 위한 적분 한계치
+    double outputLimit;    // 최종 출력(토크/추력) 한계
+
+    // D항 저역통과필터(LPF)를 위한 이전 D항 값 및 필터 계수
+    double prevDTerm;
+    double lpfAlpha;        // 0.0 ~ 1.0 (낮을수록 필터링 강함.)
+    // lpfAlpha는 비율이다. 즉, 이전 미분값과 Raw미분값을 일정 비율로 섞은 값이 LPF필터값이 되는데,
+    // 여기서 lpfAlpha는 Raw미분값이 차지하게 될 비율이다.
+
+    // 첫 루프 예외 처리용 플래그
+    bool isFirstStep;
 
 public:
-    PIDCore(double p, double i, double d, double iLimit)
-        : kp(p), ki(i), kd(d), prevError(0.0), integral(0.0), integralLimit(iLimit) {}
+    PIDCore(double p, double i, double d, double iLimit double oLimit, double alpha = 1.0)
+        : kp(p), ki(i), kd(d), 
+        prevError(0.0), integral(0.0), prevDTerm(0.0),
+        integralLimit(iLimit), outputLimit(oLimit), lpfAlpha(alpha),
+        isFirstStep(true) {}
 
-    // 제어기 초기화 
+    // 제어기 초기화 (기체가 리셋되거나 착륙 후 재이륙 시 반드시 호출)
     void reset() {
         prevError = 0.0;
         integral = 0.0;
+        prevDTerm = 0.0;
+        isFirstStep = true;
     }
 
     // 제어 입력 계산 함수 (Discrete PID)
@@ -327,16 +344,30 @@ public:
         integral = std::max(-integralLimit, std::min(integralLimit, integral)); // 포화 방지
         double iTerm = ki * integral;
 
-        // 4. D 항 (Derivative) - 오차의 변화율 계산
-        double dTerm = kd * ((error - prevError) / dt); 
-        //객체지향: error, preError를 불러와 계산할 때 PIDcore class를 선언할 때 할당한 메모리에서 가져온다.
-        //compute함수를 실행할 때, 함수 내부에서 preError가 업데이트 되고, 즉시 PIDcore class의 메모리에 저장된다.
+        // 4. D 항 (Derivative) & LPF
+        double dTerm = 0.0;
+        if (isFirstStep) {
+            // 첫 번째 스텝에서 미분 폭발을 막기 위해 D항을 0으로 처리
+            isFirstStep = false;
+        } else {
+            // 정석 미분 연산
+            double rawDTerm = kd * ((error - prevError) / dt);
+            //객체지향: error, preError를 불러와 계산할 때 PIDcore class를 선언할 때 할당한 메모리에서 가져온다.
+            //compute함수를 실행할 때, 함수 내부에서 preError가 업데이트 되고, 즉시 PIDcore class의 메모리에 저장된다.
 
-        // 다음 스텝을 위해 이전 오차 저장
+            // LPF적용: D_filtered = alpha * D_raw + (1 - alpha) * D_previous
+            dTerm = lpfAlpha * rawDTerm + (1.0 - lpfAlpha) * prevDTerm;
+        }
+
+        // 다음 스텝을 위해 상태 업데이트 (Private 변수에 안전하게 저장)
         prevError = error;
+        prevDTerm = dTerm;
 
-        // 5. 최종 PID 제어 출력
-        return pTerm + iTerm + dTerm;
+        // 5. 최종 PID 제어 출력 & 출력 포화를 제한
+        double totalOutput = pTerm + iTerm + dTerm;
+        totalOutput = std::max(-outputLimit, std::min(outputLimit, totalOutput));
+        
+        return totalOutput;
     }
 };
 
