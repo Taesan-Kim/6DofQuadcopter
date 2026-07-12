@@ -328,7 +328,9 @@ public:
         double iTerm = ki * integral;
 
         // 4. D 항 (Derivative) - 오차의 변화율 계산
-        double dTerm = kd * ((error - prevError) / dt);
+        double dTerm = kd * ((error - prevError) / dt); 
+        //객체지향: error, preError를 불러와 계산할 때 PIDcore class를 선언할 때 할당한 메모리에서 가져온다.
+        //compute함수를 실행할 때, 함수 내부에서 preError가 업데이트 되고, 즉시 PIDcore class의 메모리에 저장된다.
 
         // 다음 스텝을 위해 이전 오차 저장
         prevError = error;
