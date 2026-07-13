@@ -285,10 +285,47 @@ public:
     QuadState getState() const { return state; }
 };
 
+// 2. 2차 Low pass filter
+class BiquadFilter {
+private:
+    // 필터 계수
+    double b0, b1, b2;
+    double a1, a2;
+
+    // 과거 데이터 저장 변수 (Private 내부 캡슐화로 상태 유지)
+    double x1, x2; // 입력의 과거 값 (x[t-1], x[t-2])
+    double y1, y2; // 출력의 과거 값 (y[t-1], y[t-2])
+
+public:
+    BiquadFilter() : b0(1), b1(0), b2(0), a1(0), a2(0), x1(0), x2(0), y1(0), y2(0) {}
+
+    // 필터 계수 설정 함수 (외부에서 계산된 계수를 주입.)
+    void setCoefficients(double _b0, double _b1, double _b2, double _a1, double _a2){
+        b0 = _b0; b1 = _b1; b2 = _b2;
+        a1 = _a1; a2 = _a2;
+    }
+
+    void reset() {
+        x1 = x2 = y1 = y2 = 0.0;
+    }
+
+    // 필터링 실행 함수
+    double update(double x) {
+        // 차분 방정식 연산: y[t] = b0*x[t] + b1*x[t-1] + b2*x[t-2] - a1*y[t-1] - a2*y[t-2]
+        double y = b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+
+        // 과거 상태 업데이트 (메모리 시프트)
+        x2 = x1;
+        x1 = x;
+        y2 = y1;
+        y1= y;
+
+        return y;
+    }
+};
 
 
-
-// 2. 제어기 클래스 (추후 가벼운 룩업 테이블 기반 Explicit MPC 등으로 대체 가능)
+// 3. 제어기 클래스 (추후 가벼운 룩업 테이블 기반 Explicit MPC 등으로 대체 가능)
 class PIDCore {
 private:
     // PID 게인 파라미터
