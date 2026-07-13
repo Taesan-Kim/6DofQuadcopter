@@ -347,6 +347,9 @@ private:
     // lpfAlpha는 비율이다. 즉, 이전 미분값과 Raw미분값을 일정 비율로 섞은 값이 LPF필터값이 되는데,
     // 여기서 lpfAlpha는 Raw미분값이 차지하게 될 비율이다.
 
+    // D항 2차 저역통과필터를 위한 인스턴스
+    BiquadFilter dTermFilter; //기존에 생성한 BiquadFilter 클래스를 dTermFilter변수로 불러온다.
+
     // 첫 루프 예외 처리용 플래그
     bool isFirstStep;
 
@@ -355,6 +358,8 @@ public:
         : kp(p), ki(i), kd(d), 
         prevError(0.0), integral(0.0), prevDTerm(0.0),
         integralLimit(iLimit), outputLimit(oLimit), lpfAlpha(alpha),
+        // 100Hz 루프에서 20Hz 이하만 통과시키는 2차 LPF 계수 세팅 가정
+        dTermFilter.setCoefficients(0.0913, 0.1826, 0.0913, -1.1322, 0.4974),
         isFirstStep(true) {}
 
     // 제어기 초기화 (기체가 리셋되거나 착륙 후 재이륙 시 반드시 호출)
@@ -381,20 +386,30 @@ public:
         integral = std::max(-integralLimit, std::min(integralLimit, integral)); // 포화 방지
         double iTerm = ki * integral;
 
-        // 4. D 항 (Derivative) & LPF
-        double dTerm = 0.0;
-        if (isFirstStep) {
+        // 4. D 항 (Derivative) & 1차 LPF
+        //double dTerm = 0.0;
+        //if (isFirstStep) {
             // 첫 번째 스텝에서 미분 폭발을 막기 위해 D항을 0으로 처리
-            isFirstStep = false;
-        } else {
+            //isFirstStep = false;
+        //} else {
             // 정석 미분 연산
-            double rawDTerm = kd * ((error - prevError) / dt);
+            //double rawDTerm = kd * ((error - prevError) / dt);
             //객체지향: error, preError를 불러와 계산할 때 PIDcore class를 선언할 때 할당한 메모리에서 가져온다.
             //compute함수를 실행할 때, 함수 내부에서 preError가 업데이트 되고, 즉시 PIDcore class의 메모리에 저장된다.
 
             // LPF적용: D_filtered = alpha * D_raw + (1 - alpha) * D_previous
-            dTerm = lpfAlpha * rawDTerm + (1.0 - lpfAlpha) * prevDTerm;
+            //dTerm = lpfAlpha * rawDTerm + (1.0 - lpfAlpha) * prevDTerm;
+        //}
+
+        // 4.1 D 항 & 2차 LPF
+        double dTerm = 0.0;
+        if (!isFirstStep) {
+            double rawDTerm = kd * ((error - prevError) / dt);
+
+            // 2차 필터 통과
+            dTerm = dTermFilter.update(rawDTerm);
         }
+        
 
         // 다음 스텝을 위해 상태 업데이트 (Private 변수에 안전하게 저장)
         prevError = error;
