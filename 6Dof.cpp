@@ -286,6 +286,8 @@ public:
 };
 
 // 2. 2차 Low pass filter
+                                                    //Verilog 상에서 곱셈기 5개를 동시에 병렬로 가동시키고 그 결과들을 하나의 고속 가산기 트리로 묶으면, 1~2블록 만에 2차 필터 연산을 완전히 끝낼 수 있다.
+
 class BiquadFilter {
 private:
     // 필터 계수
