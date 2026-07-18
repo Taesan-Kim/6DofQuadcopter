@@ -302,6 +302,7 @@ public:
     BiquadFilter() : b0(1), b1(0), b2(0), a1(0), a2(0), x1(0), x2(0), y1(0), y2(0) {}
 
     // 필터 계수 설정 함수 (외부에서 계산된 계수를 주입.)
+                                                                                            //추후 활용을 위해 차단 주파수만 입력하면 실시간으로 피터 계수를 직접 계산하는 프로그램도 추가 필요.
     void setCoefficients(double _b0, double _b1, double _b2, double _a1, double _a2){
         b0 = _b0; b1 = _b1; b2 = _b2;
         a1 = _a1; a2 = _a2;
