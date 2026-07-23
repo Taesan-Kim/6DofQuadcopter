@@ -288,24 +288,38 @@ public:
 // 2. 2차 Low pass filter
                                                     //Verilog 상에서 곱셈기 5개를 동시에 병렬로 가동시키고 그 결과들을 하나의 고속 가산기 트리로 묶으면, 1~2블록 만에 2차 필터 연산을 완전히 끝낼 수 있다.
 
-class BiquadFilter {
-private:
-    // 필터 계수
+// 2.1 2차 LPF필터의 계수 구하기(2차 버터워스 LPF의 전달함수과 사전왜곡을 고려. 주파수와 dt만을 이용해서 2차 LPF의 계수를 구하는 관계식 도출 완료.)
+class AutoLPF2nd {
+private :
+    //2차 Biquad 필터 계수
     double b0, b1, b2;
     double a1, a2;
 
-    // 과거 데이터 저장 변수 (Private 내부 캡슐화로 상태 유지)
-    double x1, x2; // 입력의 과거 값 (x[t-1], x[t-2])
-    double y1, y2; // 출력의 과거 값 (y[t-1], y[t-2])
+    //히스토리 변수(x[t-1], x[t-2], y[t-1], y[t-2])
+    double x1, x2;
+    double y1, y2;
 
 public:
-    BiquadFilter() : b0(1), b1(0), b2(0), a1(0), a2(0), x1(0), x2(0), y1(0), y2(0) {}
+    AutoLPF2nd() : b0(0), b1(0), b2(0), a1(0), a2(0), x1(0), x2(0), y1(0), y2(0) {}
 
-    // 필터 계수 설정 함수 (외부에서 계산된 계수를 주입.)
-                                                                                            //추후 활용을 위해 차단 주파수만 입력하면 실시간으로 피터 계수를 직접 계산하는 프로그램도 추가 필요.
-    void setCoefficients(double _b0, double _b1, double _b2, double _a1, double _a2){
-        b0 = _b0; b1 = _b1; b2 = _b2;
-        a1 = _a1; a2 = _a2;
+    // 수학적 배경 적용// 디지털 차단주파수(Hz)와 샘플링타임(dt)만 주면 계수 자동 셋업
+    void designFilter(double cutoff_hz, double dt) {
+        if (dt <= 0.0 || cutoff_hz <= 0.0) return;
+
+        double wd = 2.0 * M_PI * cutoff_hz; // 디지털 차단 각주파수
+        double wa = (2.0 / dt) * std::tan(wd * dt / 2.0); //Pre-warping 아날로그 주파수
+        double K = 2.0 / dt;
+
+        // 공통 분모 D 계산
+        double D = (K * K) + (std::sqrt(2.0) * K * wa) + (wa * wa);
+
+        // 유도된 공식 대입
+        b0 = (wa * wa) / D;
+        b1 = 2.0 * b0;
+        b2 = b0;
+
+        a1 = (2.0 * wa * wa - 2.0 * K * K) / D;
+        a2 = ((K * K) - (std::sqrt(2.0) * K * wa) + (wa * wa)) / D;
     }
 
     void reset() {
@@ -326,7 +340,6 @@ public:
         return y;
     }
 };
-
 
 // 3. 제어기 클래스 (추후 가벼운 룩업 테이블 기반 Explicit MPC 등으로 대체 가능)
 class PIDCore {
@@ -351,7 +364,7 @@ private:
     // 여기서 lpfAlpha는 Raw미분값이 차지하게 될 비율이다.
 
     // D항 2차 저역통과필터를 위한 인스턴스
-    BiquadFilter dTermFilter; //기존에 생성한 BiquadFilter 클래스를 dTermFilter변수로 불러온다.
+    AutoLPF2nd dTermFilter; //기존에 생성한 BiquadFilter 클래스를 dTermFilter변수로 불러온다.
 
     // 첫 루프 예외 처리용 플래그
     bool isFirstStep;
@@ -362,7 +375,7 @@ public:
         prevError(0.0), integral(0.0), prevDTerm(0.0),
         integralLimit(iLimit), outputLimit(oLimit), lpfAlpha(alpha),
         // 100Hz 루프에서 20Hz 이하만 통과시키는 2차 LPF 계수 세팅 가정
-        dTermFilter.setCoefficients(0.0913, 0.1826, 0.0913, -1.1322, 0.4974),
+        dTermFilter.designFilter(3.0, 0.001),
         isFirstStep(true) {}
 
     // 제어기 초기화 (기체가 리셋되거나 착륙 후 재이륙 시 반드시 호출)
