@@ -370,13 +370,15 @@ private:
     bool isFirstStep;
 
 public:
-    PIDCore(double p, double i, double d, double iLimit double oLimit, double alpha = 1.0)
+    PIDCore(double p, double i, double d, double iLimit, double oLimit, double alpha = 1.0)
         : kp(p), ki(i), kd(d), 
         prevError(0.0), integral(0.0), prevDTerm(0.0),
         integralLimit(iLimit), outputLimit(oLimit), lpfAlpha(alpha),
-        // 100Hz 루프에서 20Hz 이하만 통과시키는 2차 LPF 계수 세팅 가정
-        dTermFilter.designFilter(3.0, 0.001),
-        isFirstStep(true) {}
+        
+        isFirstStep(true) {
+            // 100Hz 루프에서 20Hz 이하만 통과시키는 2차 LPF 계수 세팅 가정
+            dTermFilter.designFilter(3.0, 0.001);
+        }
 
     // 제어기 초기화 (기체가 리셋되거나 착륙 후 재이륙 시 반드시 호출)
     void reset() {
@@ -528,7 +530,8 @@ int main() {
         controller.computeControlInputs(current, targetState, motorInputs, dt);
 
         // 2. 물리 엔진 업데이트
-        quad.update(motorInputs, dt);
+        //motorInputs는 32bit짜리 리스트, dt는 double
+        quad.updateRK4(motorInputs, dt);
 
         time += dt;
         if (step % 20 == 0) { // 0.2초마다 터미널에 로그 출력
