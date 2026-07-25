@@ -302,12 +302,12 @@ private :
 public:
     AutoLPF2nd() : b0(0), b1(0), b2(0), a1(0), a2(0), x1(0), x2(0), y1(0), y2(0) {}
 
-    // 수학적 배경 적용// 디지털 차단주파수(Hz)와 샘플링타임(dt)만 주면 계수 자동 셋업
+    // 수학적 배경 적용// 원하는 디지털 차단주파수(Hz)와 샘플링타임(dt)만 주면 필터 계수 자동 셋업
     void designFilter(double cutoff_hz, double dt) {
         if (dt <= 0.0 || cutoff_hz <= 0.0) return;
 
         double wd = 2.0 * M_PI * cutoff_hz; // 디지털 차단 각주파수
-        double wa = (2.0 / dt) * std::tan(wd * dt / 2.0); //Pre-warping 아날로그 주파수
+        double wa = (2.0 / dt) * std::tan(wd * dt / 2.0); //Pre-warping으로 아날로그 주파수. 사전왜곡을 통해 쌍선형변환으로 인한 주파수 왜곡 현상을 막는다.
         double K = 2.0 / dt;
 
         // 공통 분모 D 계산
