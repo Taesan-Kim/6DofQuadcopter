@@ -227,9 +227,9 @@ private:
 
         
         // 각가속도 계산 (Euler's equations for rigid body)
-        deriv.angularAccel.x = (torque.x + (Param::I.y - Param::I.z) * state.angularVel.y * state.angularVel.z) / Param::I.x;
-        deriv.angularAccel.y = (torque.y + (Param::I.z - Param::I.x) * state.angularVel.z * state.angularVel.x) / Param::I.y;
-        deriv.angularAccel.z = (torque.z + (Param::I.x - Param::I.y) * state.angularVel.x * state.angularVel.y) / Param::I.z;
+        deriv.angularAccel.x = (torque.x + (Param::I.y - Param::I.z) * s.angularVel.y * s.angularVel.z) / Param::I.x;
+        deriv.angularAccel.y = (torque.y + (Param::I.z - Param::I.x) * s.angularVel.z * s.angularVel.x) / Param::I.y;
+        deriv.angularAccel.z = (torque.z + (Param::I.x - Param::I.y) * s.angularVel.x * s.angularVel.y) / Param::I.z;
 
         return deriv;
     }
@@ -377,7 +377,7 @@ public:
         
         isFirstStep(true) {
             // 100Hz 루프에서 20Hz 이하만 통과시키는 2차 LPF 계수 세팅 가정
-            dTermFilter.designFilter(3.0, 0.001);
+            dTermFilter.designFilter(3.0, 0.01);
         }
 
     // 제어기 초기화 (기체가 리셋되거나 착륙 후 재이륙 시 반드시 호출)
@@ -386,6 +386,7 @@ public:
         integral = 0.0;
         prevDTerm = 0.0;
         isFirstStep = true;
+        dTermFilter.reset();
     }
 
     // 제어 입력 계산 함수 (Discrete PID)
@@ -446,14 +447,16 @@ public:
 class QuadController {
 private:
     // 위치(외곽) 제어기: X, Y, Z 고도
-    PIDCore x_pos{1.5, 0.0, 1.0, 0.0};
-    PIDCore y_pos{1.5, 0.0, 1.0, 0.0};
-    PIDCore z_pos{25.0, 2.0, 10.0, 5.0}; // 고도는 중력을 이겨야 하므로 게인을 크게 설정
+    // P, I, D, iLimit, oLimit
+    PIDCore x_pos{1.5, 0.0, 1.0, 0.0, 10.0};
+    PIDCore y_pos{1.5, 0.0, 1.0, 0.0, 10.0};
+    PIDCore z_pos{25.0, 2.0, 10.0, 5.0, 20.0}; // 고도는 중력을 이겨야 하므로 게인을 크게 설정
 
     // 자세(내곽) 제어기: Roll, Pitch, Yaw
-    PIDCore roll_rate{6.0, 0.5, 2.0, 1.0};
-    PIDCore pitch_rate{6.0, 0.5, 2.0, 1.0};
-    PIDCore yaw_rate{4.0, 0.1, 1.0, 0.5};
+    // P, I, D, iLimit, oLimit
+    PIDCore roll_rate{6.0, 0.5, 2.0, 1.0, 5.0};
+    PIDCore pitch_rate{6.0, 0.5, 2.0, 1.0, 5.0};
+    PIDCore yaw_rate{4.0, 0.1, 1.0, 0.5, 2.0};
 
 public:
     // 메인 루프에서 호출되는 제어 입력 계산 함수
@@ -462,9 +465,17 @@ public:
         // 위치 오차를 바탕으로 기체가 생성해야 할 목표 가속도/기울기(목표 오일러 각) 계산
         // 단순화를 위해 X 위치 오차는 Pitch에, Y 위치 오차는 Roll에 매핑 (방향 부호 주의)
 
+        double maxMotorThrust = 100.0; //[N]
+
         // compute: 제어 입력 계산 함수 (Discrete PID)
         double target_roll  = -y_pos.compute(target.position.y, current.position.y, dt);
         double target_pitch =  x_pos.compute(target.position.x, current.position.x, dt);
+
+        //목표각 자체를 안전범위로 제한한다.
+        const double MAX_TILT = 0.35; // 약 20도(rad)
+        target_roll  = std::max(-MAX_TILT, std::min(MAX_TILT, target_roll));
+        target_pitch = std::max(-MAX_TILT, std::min(MAX_TILT, target_pitch));
+        
         double target_yaw   =  target.attitude.z; // 우선 목표 Yaw는 그대로 추종하도록 설정
         
         // 고도 제어 입력 (Base Thrust)
@@ -496,7 +507,7 @@ public:
 
         // 하드웨어 보호를 위한 모터 출력 Max/Min Saturation 제한 (음수 방지)
         for(int i = 0; i < 4; ++i) {
-            if(outInputs[i] < 0.0) outInputs[i] = 0.0;
+            outInputs[i] = std::max(0.0, std::min(Param::maxMotorThrust, outInputs[i]));
         }
     }
 };
