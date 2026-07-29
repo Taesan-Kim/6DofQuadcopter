@@ -521,9 +521,12 @@ public:
 int main() {
     QuadState initState;
     initState.position = { 0.0, 0.0, 0.0 }; // 지면에서 시작
+    initState.velocity = { 0.0, 0.0, 0.0 };
+    initState.attitude = { 0.0, 0.0, 0.0 };
+    initState.angularVel = { 0.0, 0.0, 0.0 };
 
     QuadState targetState;
-    targetState.position = { 0.0, 0.0, 10.0 }; // 목표 고도 10m
+    targetState.position = { 5.0, 5.0, 10.0 }; // 목표 X:5, Y:5, 고도 10m
 
     QuadcopterDynamics quad(initState);
     QuadController controller;
@@ -533,23 +536,36 @@ int main() {
     double time = 0.0;
     double motorInputs[4] = { 0, 0, 0, 0 };
 
-    std::cout << "--- 시뮬레이션 시작 ---" << std::endl;
-    for (int step = 0; step < 200; ++step) { // 2초간 시뮬레이션
+    // 1. CSV 파일 생성 및 헤더 작성
+    std::ofstream outFile("drone_sim_data.csv"); 
+    //std::ofstream은 CSV파일 생성
+    //RAM ---> outFile ---> HDD/SSD
+    
+    outFile << "Time,X,Y,Z,Roll,Pitch,Yaw\n";
+    //Excel 표 생성... ,는 column
+
+    std::cout << "--- 시뮬레이션 시작 (CSV 기록 중) ---" << std::endl;
+    for (int step = 0; step < 1000; ++step) { // 10초간 시뮬레이션
         QuadState current = quad.getState();
+        //매 시뮬레이션마다 현재 상태 저장
+        
+        // 2. CSV 파일에 현재 상태 기록
+        outFile << time << "," 
+                << current.position.x << "," << current.position.y << "," << current.position.z << ","
+                << current.attitude.x << "," << current.attitude.y << "," << current.attitude.z << "\n";
 
-        // 1. 제어 입력 계산
+        // 1. 제어 입력 계산 & 물리 엔진 업데이트
         controller.computeControlInputs(current, targetState, motorInputs, dt);
-
-        // 2. 물리 엔진 업데이트
-        //motorInputs는 32bit짜리 리스트, dt는 double
         quad.updateRK4(motorInputs, dt);
+        //motorInputs는 32bit짜리 리스트, dt는 double
 
         time += dt;
-        if (step % 20 == 0) { // 0.2초마다 터미널에 로그 출력
-            std::cout << "Time: " << time << "s | Z-Position: " << current.position.z
-                << "m | Z-Velocity: " << current.velocity.z << "m/s" << std::endl;
-        }
     }
+    
+    outFile.close(); // 파일 닫기
+    // 프로그램 ---> 파일 버퍼 ---> flush ---> SSD/HDD
+    std::cout << "--- 시뮬레이션 종료 (drone_sim_data.csv 저장 완료) ---" << std::endl;
+    
     return 0;
 }
 
