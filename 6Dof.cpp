@@ -1,7 +1,10 @@
+#define _USE_MATH_DEFINES // M_PI를 사용하기 위해 cmath 포함 전 반드시 선언
+
 #include <iostream>
 #include <cmath>
 #include <vector>
 #include <algorithm>
+#include <fstream> //std::ofstream 허용 , 파일 출력과 관련된 << 연산자 이용
 
 //포인터
 //*p는 p의 객체
@@ -12,7 +15,7 @@
 
 
 // 3차원 벡터 및 기본 연산 구조체
-struct Vector3 { 
+struct Vector3 {
     //struct is bundle of data. 
     //class와의 유일한 차이점은 struct의 기본 접근 지정자는 public이다.
     //class는 private이다.
@@ -33,27 +36,27 @@ struct Vector3 {
     //따라서 x=100을 하면 컴파일 에러이다.
 
     // 벡터 덧셈
-    Vector3 operator+(const Vector3& v) const { 
-        return { 
+    Vector3 operator+(const Vector3& v) const {
+        return {
             x + v.x,
             y + v.y,
-            z + v.z 
-        }; 
+            z + v.z
+        };
     }
     // 스칼라곱
     Vector3 operator*(double scalar) const {
         return {
             x * scalar,
             y * scalar,
-            z * scalar 
-        }; 
+            z * scalar
+        };
     }
     // 벡터 E셈
     Vector3 operator-(const Vector3& v) const {
         return {
             x - v.x,
             y - v.y,
-            z - v.z 
+            z - v.z
         };
     }
     // 스칼라 나눗셈
@@ -123,12 +126,12 @@ struct Vector3 {
     Vector3 normalized() const {
         double n = norm();
         if (n == 0.0)
-            return {0.0, 0.0, 0.0};
+            return { 0.0, 0.0, 0.0 };
         return {
             x / n,
             y / n,
             z / n
-            };
+        };
     }
 };
 
@@ -157,6 +160,8 @@ namespace Param {
     const double l = 0.25;        // 회전축에서 모터까지의 거리 (m)
     const double b = 5.42e-5;     // 추력 계수
     const double d = 1.1e-6;      // 항력 계수
+    const double maxMotorThrust = 10.0; //모터 1개의 최대추력
+    //드론의 질량 1.5kg이라고 가정. TWR은 2.5배 적용. 1.5 * 9.81 / 4 * 2.5 = 10.0[N]
 }
 
 // 1. 동역학 플랜 클래스
@@ -164,16 +169,16 @@ class QuadcopterDynamics {
 private:
     QuadState state;
 
-// getDerivative
-// INPUT: motorInput[4], Initial State(QuadState)
-// OUTPUT: Derivative of State(12차원)...위치의 변화율, 속도의 변화율, 자세각의 변화율, 각속도의 변화율
-// Method
-//        위치의 변화율: 현재속도
-//        속도의 변화율: 모터추력을 통한 동체좌표계 추력 구하기 + 자세각을 이용하여 동체좌표계를 지구좌표계로 변환.
-//        자세각의 변화율: 자이로센서를 통해 동체 각변화율을 얻는다 + 동체각변화율을 관성좌표계로 변환한다(회전이용 Yaw -> Pitch -> Roll) + 관성좌표계로 변환된 동체각변화율 요소들을 총합하고, 
-//                                                        오일러좌표계 각변화율 요소들을 가중치들과 분리하여 오일러좌표계 각변화율과 동체각변화율 간의 행렬등식을 만든다 + 역함수를 취해 오일러좌표계 각변화율을 동체각변화율에 대한 식으로 나타낸다.
-//        각속도의 변화율: 뉴턴-오일러 각운동량 방정식을 통한 유도 (토크, 회전관성, 각속도를 알면 구할 수 있다.)
-    QuadDerivative getDerivative(const QuadState& s, const double motorInputs[4]) const{
+    // getDerivative
+    // INPUT: motorInput[4], Initial State(QuadState)
+    // OUTPUT: Derivative of State(12차원)...위치의 변화율, 속도의 변화율, 자세각의 변화율, 각속도의 변화율
+    // Method
+    //        위치의 변화율: 현재속도
+    //        속도의 변화율: 모터추력을 통한 동체좌표계 추력 구하기 + 자세각을 이용하여 동체좌표계를 지구좌표계로 변환.
+    //        자세각의 변화율: 자이로센서를 통해 동체 각변화율을 얻는다 + 동체각변화율을 관성좌표계로 변환한다(회전이용 Yaw -> Pitch -> Roll) + 관성좌표계로 변환된 동체각변화율 요소들을 총합하고, 
+    //                                                        오일러좌표계 각변화율 요소들을 가중치들과 분리하여 오일러좌표계 각변화율과 동체각변화율 간의 행렬등식을 만든다 + 역함수를 취해 오일러좌표계 각변화율을 동체각변화율에 대한 식으로 나타낸다.
+    //        각속도의 변화율: 뉴턴-오일러 각운동량 방정식을 통한 유도 (토크, 회전관성, 각속도를 알면 구할 수 있다.)
+    QuadDerivative getDerivative(const QuadState& s, const double motorInputs[4]) const {
         QuadDerivative deriv;
 
         // 4개 모터 입력으로부터 총 추력(Thrust) 및 3축 모멘트(Torque) 계산
@@ -225,7 +230,7 @@ private:
         deriv.angularVel.z = (s_phi / c_theta) * s.angularVel.y + (c_phi / c_theta) * s.angularVel.z; // dot_psi
         // 이때, theta가 +- pi/2일 때, Gimbal Lock이 발생함을 주의한다. (짐벌락 방지 코드 추가 완.)                                                                                               //추후 쿼터니언 기반 동역학으로 해결해야 할 것!
 
-        
+
         // 각가속도 계산 (Euler's equations for rigid body)
         deriv.angularAccel.x = (torque.x + (Param::I.y - Param::I.z) * s.angularVel.y * s.angularVel.z) / Param::I.x;
         deriv.angularAccel.y = (torque.y + (Param::I.z - Param::I.x) * s.angularVel.z * s.angularVel.x) / Param::I.y;
@@ -235,13 +240,13 @@ private:
     }
 public:
     //QuadcopterDynamics 함수 생성 후 멤버 변수 state를 initialState로 직접 초기화하라.
-    QuadcopterDynamics(QuadState initialState) 
+    QuadcopterDynamics(QuadState initialState)
         : state(initialState) //함수 호출이 아니다. state는 함수가 아닌, 멤버 변수이다.
         //즉, state 객체를 initialState로 생성한다는 의미
     {}
 
     // 모터 속도(RPM 또는 무차원 제어입력)를 받아 상태를 갱신 (Euler integration)
-    
+
 
     // RK4 기반 상태 업데이트 Method
     //updateRK4
@@ -290,7 +295,7 @@ public:
 
 // 2.1 2차 LPF필터의 계수 구하기(2차 버터워스 LPF의 전달함수과 사전왜곡을 고려. 주파수와 dt만을 이용해서 2차 LPF의 계수를 구하는 관계식 도출 완료.)
 class AutoLPF2nd {
-private :
+private:
     //2차 Biquad 필터 계수
     double b0, b1, b2;
     double a1, a2;
@@ -335,7 +340,7 @@ public:
         x2 = x1;
         x1 = x;
         y2 = y1;
-        y1= y;
+        y1 = y;
 
         return y;
     }
@@ -371,14 +376,14 @@ private:
 
 public:
     PIDCore(double p, double i, double d, double iLimit, double oLimit, double alpha = 1.0)
-        : kp(p), ki(i), kd(d), 
+        : kp(p), ki(i), kd(d),
         prevError(0.0), integral(0.0), prevDTerm(0.0),
         integralLimit(iLimit), outputLimit(oLimit), lpfAlpha(alpha),
-        
+
         isFirstStep(true) {
-            // 100Hz 루프에서 20Hz 이하만 통과시키는 2차 LPF 계수 세팅 가정
-            dTermFilter.designFilter(3.0, 0.01);
-        }
+        // 100Hz 루프에서 20Hz 이하만 통과시키는 2차 LPF 계수 세팅 가정
+        dTermFilter.designFilter(3.0, 0.01);
+    }
 
     // 제어기 초기화 (기체가 리셋되거나 착륙 후 재이륙 시 반드시 호출)
     void reset() {
@@ -428,7 +433,7 @@ public:
             // 2차 필터 통과
             dTerm = dTermFilter.update(rawDTerm);
         }
-        
+
 
         // 다음 스텝을 위해 상태 업데이트 (Private 변수에 안전하게 저장)
         prevError = error;
@@ -437,7 +442,7 @@ public:
         // 5. 최종 PID 제어 출력 & 출력 포화를 제한
         double totalOutput = pTerm + iTerm + dTerm;
         totalOutput = std::max(-outputLimit, std::min(outputLimit, totalOutput));
-        
+
         return totalOutput;
     }
 };
@@ -448,15 +453,15 @@ class QuadController {
 private:
     // 위치(외곽) 제어기: X, Y, Z 고도
     // P, I, D, iLimit, oLimit
-    PIDCore x_pos{1.5, 0.0, 1.0, 0.0, 10.0};
-    PIDCore y_pos{1.5, 0.0, 1.0, 0.0, 10.0};
-    PIDCore z_pos{25.0, 2.0, 10.0, 5.0, 20.0}; // 고도는 중력을 이겨야 하므로 게인을 크게 설정
+    PIDCore x_pos{ 1.5, 0.0, 1.0, 0.0, 10.0 };
+    PIDCore y_pos{ 1.5, 0.0, 1.0, 0.0, 10.0 };
+    PIDCore z_pos{ 25.0, 2.0, 10.0, 5.0, 20.0 }; // 고도는 중력을 이겨야 하므로 게인을 크게 설정
 
     // 자세(내곽) 제어기: Roll, Pitch, Yaw
     // P, I, D, iLimit, oLimit
-    PIDCore roll_rate{6.0, 0.5, 2.0, 1.0, 5.0};
-    PIDCore pitch_rate{6.0, 0.5, 2.0, 1.0, 5.0};
-    PIDCore yaw_rate{4.0, 0.1, 1.0, 0.5, 2.0};
+    PIDCore roll_rate{ 6.0, 0.5, 2.0, 1.0, 5.0 };
+    PIDCore pitch_rate{ 6.0, 0.5, 2.0, 1.0, 5.0 };
+    PIDCore yaw_rate{ 4.0, 0.1, 1.0, 0.5, 2.0 };
 
 public:
     // 메인 루프에서 호출되는 제어 입력 계산 함수
@@ -468,16 +473,16 @@ public:
         double maxMotorThrust = 100.0; //[N]
 
         // compute: 제어 입력 계산 함수 (Discrete PID)
-        double target_roll  = -y_pos.compute(target.position.y, current.position.y, dt);
-        double target_pitch =  x_pos.compute(target.position.x, current.position.x, dt);
+        double target_roll = -y_pos.compute(target.position.y, current.position.y, dt);
+        double target_pitch = x_pos.compute(target.position.x, current.position.x, dt);
 
         //목표각 자체를 안전범위로 제한한다.
         const double MAX_TILT = 0.35; // 약 20도(rad)
-        target_roll  = std::max(-MAX_TILT, std::min(MAX_TILT, target_roll));
+        target_roll = std::max(-MAX_TILT, std::min(MAX_TILT, target_roll));
         target_pitch = std::max(-MAX_TILT, std::min(MAX_TILT, target_pitch));
-        
-        double target_yaw   =  target.attitude.z; // 우선 목표 Yaw는 그대로 추종하도록 설정
-        
+
+        double target_yaw = target.attitude.z; // 우선 목표 Yaw는 그대로 추종하도록 설정
+
         // 고도 제어 입력 (Base Thrust)
         double thrustCmd = z_pos.compute(target.position.z, current.position.z, dt);
         // 호버링을 위한 기본 중력 보상 평형 상태 추력 추가
@@ -486,9 +491,9 @@ public:
 
         // --- 2. 안쪽 루프 (Attitude Loop) ---
         // 목표 오일러 각과 현재 오일러 각의 오차를 바탕으로 원하는 3축 토크 명령 계산
-        double rollTorque  = roll_rate.compute(target_roll,  current.attitude.x, dt);
+        double rollTorque = roll_rate.compute(target_roll, current.attitude.x, dt);
         double pitchTorque = pitch_rate.compute(target_pitch, current.attitude.y, dt);
-        double yawTorque   = yaw_rate.compute(target_yaw,   current.attitude.z, dt);
+        double yawTorque = yaw_rate.compute(target_yaw, current.attitude.z, dt);
 
         // --- 3. 모터 믹서 (Motor Mixer) ---
         // 엑스형(X) 구조 토크 공식을 역산하여 4개 모터의 개별 추력 분배
@@ -506,7 +511,7 @@ public:
         outInputs[3] = u_t - u_r - u_p - u_y; // 후좌 (4번 모터, CW)
 
         // 하드웨어 보호를 위한 모터 출력 Max/Min Saturation 제한 (음수 방지)
-        for(int i = 0; i < 4; ++i) {
+        for (int i = 0; i < 4; ++i) {
             outInputs[i] = std::max(0.0, std::min(Param::maxMotorThrust, outInputs[i]));
         }
     }
@@ -530,17 +535,17 @@ int main() {
 
     QuadcopterDynamics quad(initState);
     QuadController controller;
-    
+
 
     double dt = 0.01; // 100Hz 연산
     double time = 0.0;
     double motorInputs[4] = { 0, 0, 0, 0 };
 
     // 1. CSV 파일 생성 및 헤더 작성
-    std::ofstream outFile("drone_sim_data.csv"); 
+    std::ofstream outFile("drone_sim_data.csv");
     //std::ofstream은 CSV파일 생성
     //RAM ---> outFile ---> HDD/SSD
-    
+
     outFile << "Time,X,Y,Z,Roll,Pitch,Yaw\n";
     //Excel 표 생성... ,는 column
 
@@ -548,11 +553,11 @@ int main() {
     for (int step = 0; step < 1000; ++step) { // 10초간 시뮬레이션
         QuadState current = quad.getState();
         //매 시뮬레이션마다 현재 상태 저장
-        
+
         // 2. CSV 파일에 현재 상태 기록
-        outFile << time << "," 
-                << current.position.x << "," << current.position.y << "," << current.position.z << ","
-                << current.attitude.x << "," << current.attitude.y << "," << current.attitude.z << "\n";
+        outFile << time << ","
+            << current.position.x << "," << current.position.y << "," << current.position.z << ","
+            << current.attitude.x << "," << current.attitude.y << "," << current.attitude.z << "\n";
 
         // 1. 제어 입력 계산 & 물리 엔진 업데이트
         controller.computeControlInputs(current, targetState, motorInputs, dt);
@@ -561,12 +566,10 @@ int main() {
 
         time += dt;
     }
-    
+
     outFile.close(); // 파일 닫기
     // 프로그램 ---> 파일 버퍼 ---> flush ---> SSD/HDD
     std::cout << "--- 시뮬레이션 종료 (drone_sim_data.csv 저장 완료) ---" << std::endl;
-    
+
     return 0;
 }
-
-
