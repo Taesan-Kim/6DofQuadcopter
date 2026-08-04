@@ -155,7 +155,7 @@ struct QuadDerivative {
 //이름이 같은 변수의 충돌을 막기 위함
 namespace Param {
     const double g = 9.81;        // 중력가속도
-    const double mass = 1.0;      // 기체 질량 (kg)
+    const double mass = 1.5;      // 기체 질량 (kg)
     const Vector3 I = { 0.0081, 0.0081, 0.0142 }; // 관성모멘트 (Ixx, Iyy, Izz)
     const double l = 0.25;        // 회전축에서 모터까지의 거리 (m)
     const double b = 5.42e-5;     // 추력 계수
@@ -455,7 +455,7 @@ private:
     // P, I, D, iLimit, oLimit
     PIDCore x_pos{ 1.5, 0.0, 1.0, 0.0, 10.0 };
     PIDCore y_pos{ 1.5, 0.0, 1.0, 0.0, 10.0 };
-    PIDCore z_pos{ 25.0, 2.0, 10.0, 5.0, 20.0 }; // 고도는 중력을 이겨야 하므로 게인을 크게 설정
+    PIDCore z_pos{ 3.0, 0.0, 10.0, 0.0, 10.0 }; // 고도는 중력을 이겨야 하므로 게인을 크게 설정
 
     // 자세(내곽) 제어기: Roll, Pitch, Yaw
     // P, I, D, iLimit, oLimit
@@ -470,7 +470,7 @@ public:
         // 위치 오차를 바탕으로 기체가 생성해야 할 목표 가속도/기울기(목표 오일러 각) 계산
         // 단순화를 위해 X 위치 오차는 Pitch에, Y 위치 오차는 Roll에 매핑 (방향 부호 주의)
 
-        double maxMotorThrust = 100.0; //[N]
+        double maxMotorThrust = 10.0; //[N]
 
         // compute: 제어 입력 계산 함수 (Discrete PID)
         // Discrete PID의 기능: 드론이 목표로 가기 위해 지금 당장 내야 하는 목표 x,y축 가속도 계산
@@ -553,7 +553,7 @@ int main() {
     //Excel 표 생성... ,는 column
 
     std::cout << "--- 시뮬레이션 시작 (CSV 기록 중) ---" << std::endl;
-    for (int step = 0; step < 1000; ++step) { // 10초간 시뮬레이션
+    for (int step = 0; step < 3000; ++step) { // 10초간 시뮬레이션
         QuadState current = quad.getState();
         //매 시뮬레이션마다 현재 상태 저장
 
