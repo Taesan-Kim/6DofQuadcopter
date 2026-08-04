@@ -182,19 +182,19 @@ private:
         QuadDerivative deriv;
 
         // 4개 모터 입력으로부터 총 추력(Thrust) 및 3축 모멘트(Torque) 계산
-        double F1 = motorInputs[0];
-        double F2 = motorInputs[1];
-        double F3 = motorInputs[2];
-        double F4 = motorInputs[3];
+        double F1 = motorInputs[0]; //Rear-Left
+        double F2 = motorInputs[1]; //Heading-Right
+        double F3 = motorInputs[2]; //Rear-Right
+        double F4 = motorInputs[3]; //Heading-Left
 
         double totalThrust = F1 + F2 + F3 + F4;
 
         // 업데이트된 엑스형(X) 배치 동역학 토크 계산
         Vector3 torque;
         // 전방/후방, 좌/우 매핑에 맞춰 부호 정렬 (오른손 법칙 기준)
-        torque.x = Param::l * (F2 + F1 - F4 - F3); // Roll
-        torque.y = Param::l * (F3 + F1 - F2 - F4); // Pitch
-        torque.z = (Param::d / Param::b) * (F1 - F2 + F3 - F4); // Yaw
+        torque.x = Param::l * (F1 + F4 - F2 - F3); // Roll: 좌측(1,4) - 우측(2,3)
+        torque.y = Param::l * (F1 + F3 - F2 - F4); // Pitch: 후면(1,3) - 전면(2,4)
+        torque.z = (Param::d / Param::b) * (F1 - F3 + F2 - F4); // Yaw: CCW(1,2) - CW(3,4)
 
         // 물리 법칙에 의한 가속도 및 각가속도 계산 (상태 s에 의존)
         // 위치의 변화율 = 현재 속도
@@ -473,8 +473,10 @@ public:
         double maxMotorThrust = 100.0; //[N]
 
         // compute: 제어 입력 계산 함수 (Discrete PID)
-        double target_roll = -y_pos.compute(target.position.y, current.position.y, dt);
-        double target_pitch = x_pos.compute(target.position.x, current.position.x, dt);
+        // Discrete PID의 기능: 드론이 목표로 가기 위해 지금 당장 내야 하는 목표 x,y축 가속도 계산
+        // 우변에 1/g가 곱해지지 않은 이유: 상수 비율을 PID게인 값 자체에 흡수시켜서 튜닝한다.
+        double target_roll = 1/Param::g*-y_pos.compute(target.position.y, current.position.y, dt); //y축 방향으로 전진하기 위해서는 Roll 각도를 음수 방향으로 기울여야 한다.
+        double target_pitch = 1 / Param::g*x_pos.compute(target.position.x, current.position.x, dt);
 
         //목표각 자체를 안전범위로 제한한다.
         const double MAX_TILT = 0.35; // 약 20도(rad)
@@ -491,9 +493,10 @@ public:
 
         // --- 2. 안쪽 루프 (Attitude Loop) ---
         // 목표 오일러 각과 현재 오일러 각의 오차를 바탕으로 원하는 3축 토크 명령 계산
-        double rollTorque = roll_rate.compute(target_roll, current.attitude.x, dt);
-        double pitchTorque = pitch_rate.compute(target_pitch, current.attitude.y, dt);
-        double yawTorque = yaw_rate.compute(target_yaw, current.attitude.z, dt);
+        // 드론의 관성 모먼트(상수)는 우변에 곱하는 대신, PID게인 튜닝할 때 내부에 곱해서 세팅하겠다.
+        double rollTorque = Param::I.x*roll_rate.compute(target_roll, current.attitude.x, dt);
+        double pitchTorque = Param::I.y*pitch_rate.compute(target_pitch, current.attitude.y, dt);
+        double yawTorque = Param::I.z*yaw_rate.compute(target_yaw, current.attitude.z, dt);
 
         // --- 3. 모터 믹서 (Motor Mixer) ---
         // 엑스형(X) 구조 토크 공식을 역산하여 4개 모터의 개별 추력 분배
@@ -505,10 +508,10 @@ public:
         double u_y = yawTorque / (4.0 * (Param::d / Param::b));
 
         // 엑스형(X) 모터 믹싱 맵핑 (토크 방정식의 부호와 완벽히 대칭 매칭)
-        outInputs[0] = u_t + u_r + u_p + u_y; // 후우 (1번 모터, CCW)
-        outInputs[1] = u_t + u_r - u_p - u_y; // 전우 (2번 모터, CW)
-        outInputs[2] = u_t - u_r + u_p + u_y; // 전좌 (3번 모터, CCW)
-        outInputs[3] = u_t - u_r - u_p - u_y; // 후좌 (4번 모터, CW)
+        outInputs[0] = u_t + u_r + u_p + u_y; // Rear-Left (1번 모터, CCW)
+        outInputs[1] = u_t - u_r - u_p + u_y; // Heading-Right (2번 모터, CCW)
+        outInputs[2] = u_t - u_r + u_p - u_y; // Rear-Right (3번 모터, CW)
+        outInputs[3] = u_t + u_r - u_p - u_y; // Heading-Left (4번 모터, CW)
 
         // 하드웨어 보호를 위한 모터 출력 Max/Min Saturation 제한 (음수 방지)
         for (int i = 0; i < 4; ++i) {
@@ -531,7 +534,7 @@ int main() {
     initState.angularVel = { 0.0, 0.0, 0.0 };
 
     QuadState targetState;
-    targetState.position = { 5.0, 5.0, 10.0 }; // 목표 X:5, Y:5, 고도 10m
+    targetState.position = { 0.0, 0.0, 10.0 }; // 목표 X:5, Y:5, 고도 10m
 
     QuadcopterDynamics quad(initState);
     QuadController controller;
