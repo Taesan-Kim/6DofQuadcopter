@@ -12,8 +12,6 @@
 //Vector3* p = 는 Vector3의 주소를 저장하는 변수
 //p가 주소라고 할 때, p(주소)->x(객체) 는 (*p).x
 
-
-
 // 3차원 벡터 및 기본 연산 구조체
 struct Vector3 {
     //struct is bundle of data. 
@@ -447,7 +445,6 @@ public:
     }
 };
 
-
 // 메인 컨트롤러 클래스
 class QuadController {
 private:
@@ -519,11 +516,6 @@ public:
         }
     }
 };
-
-
-
-
-
 
 // 3. 메인 시뮬레이션 루프 매니저
 int main() {
