@@ -133,14 +133,13 @@ struct Vector3 {
     }
 };
 
-// 6자유도 상태 상태 벡터 정의
+// 6자유도 상태 벡터 정의
 struct QuadState {
     Vector3 position;      // 지구고정좌표계 (X, Y, Z)
     Vector3 velocity;      // 지구고정좌표계 속도
     Vector3 attitude;      // 오일러 각 (Roll, Pitch, Yaw)
     Vector3 angularVel;    // 동체고정좌표계 각속도 (p, q, r)
 };
-
 struct QuadDerivative {
     Vector3 velocity;       // 위치의 변화율 = 속도
     Vector3 accel;          // 속도의 변화율 = 가속도
@@ -380,8 +379,8 @@ public:
 
         isFirstStep(true) {
         // 100Hz 루프에서 20Hz 이하만 통과시키는 2차 LPF 계수 세팅 가정
-        dTermFilter.designFilter(3.0, 0.01);
-    }
+        dTermFilter.designFilter(6.0, 0.01);
+        }
 
     // 제어기 초기화 (기체가 리셋되거나 착륙 후 재이륙 시 반드시 호출)
     void reset() {
@@ -431,6 +430,7 @@ public:
             // 2차 필터 통과
             dTerm = dTermFilter.update(rawDTerm);
         }
+        isFirstStep = false;
 
 
         // 다음 스텝을 위해 상태 업데이트 (Private 변수에 안전하게 저장)
@@ -452,7 +452,7 @@ private:
     // P, I, D, iLimit, oLimit
     PIDCore x_pos{ 1.5, 0.0, 1.0, 0.0, 10.0 };
     PIDCore y_pos{ 1.5, 0.0, 1.0, 0.0, 10.0 };
-    PIDCore z_pos{ 3.0, 0.0, 10.0, 0.0, 10.0 }; // 고도는 중력을 이겨야 하므로 게인을 크게 설정
+    PIDCore z_pos{ 6.0, 0.5, 4.5, 0.0, 10.0 }; // 고도는 중력을 이겨야 하므로 게인을 크게 설정
 
     // 자세(내곽) 제어기: Roll, Pitch, Yaw
     // P, I, D, iLimit, oLimit
